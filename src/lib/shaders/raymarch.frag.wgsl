@@ -1,5 +1,6 @@
 const resolution:  vec2<f32> = vec2(1920, 1080);
 
+// TimeElapsed, as second
 @group(0) @binding(0) var<uniform> time: f32;
 
 fn c01(p: f32) -> f32 {
@@ -130,6 +131,24 @@ fn shadow(ro: vec3<f32>, rd: vec3<f32>, mint: f32, tmax: f32) -> f32 {
     return res;
 }
 
+fn globalLight(rayDirection: vec3<f32>, normal: vec3<f32>, point: vec3<f32>, baseColor: vec3<f32>) -> vec3<f32> {
+  var newColor = vec3(0.0);
+  var reflection = reflect(rayDirection, normal);
+  var skyPos = vec3(0, 10.0, 0);
+  var skyDir = normalize(skyPos);
+  var skyColor = vec3(0.5, 0.4, -0.6);
+  var diffuse = c01(0.5 + 0.5 * normal.y);
+  var spe = smoothstep(-0.2, 0.2, reflection.y);
+  spe *= diffuse;
+
+  spe *= smoothstep(-1.0, 2.0, dot(normal, rayDirection));
+  spe *= shadow(point, reflection, 0.02, 2.5);
+  newColor += baseColor * 0.6 * diffuse * vec3(0.4, 0.6, 1.15);
+  newColor += 2.0 * spe * vec3(0.4, 0.6, 1.3) * 0.4;
+  return newColor;
+
+}
+
 fn render(rayOrigin: vec3<f32>, rayDirection: vec3<f32>) -> vec3<f32> {
     let distance = raymarch(rayOrigin, rayDirection);
 
@@ -140,17 +159,21 @@ fn render(rayOrigin: vec3<f32>, rayDirection: vec3<f32>) -> vec3<f32> {
 	var point = rayOrigin + rayDirection * distance;
     var normal = calcNormal(point);
 
-    return directionalLight(
+	// Normal color mapping
+    // return abs(calcNormal(rayOrigin + rayDirection * distance));
+
+	var color = globalLight(rayDirection, normal, point, vec3(0.2, 0.2, 0.9)) + 
+	 directionalLight(
         rayDirection,
         normal,
         point,
-        vec3(0.4, 0.2, 0.8),
+        vec3(0.4, 0.2, 0.8), // light color
         vec3(2.0, 2.0, 2.0),
         vec3(0.9294, 0.4275, 0.4),
         32.0
     );
 
-    return abs(calcNormal(rayOrigin + rayDirection * distance));
+	return color;
 }
 
 fn setCamera(ro: vec3<f32>, ta: vec3<f32>, cr: f32) -> mat3x3<f32> {
@@ -163,8 +186,8 @@ fn setCamera(ro: vec3<f32>, ta: vec3<f32>, cr: f32) -> mat3x3<f32> {
 
 @fragment
 fn main(@builtin(position) coordinates: vec4<f32>) -> @location(0) vec4<f32> {
-  // camera magic
-    let camspeed: f32 = .025;
+	// camera magic
+    let camspeed: f32 = 1.25;
     let ta: vec3<f32> = vec3(0.25, -0.75, -0.75);
     let ro: vec3<f32> = ta + vec3(4.9 * cos(time * camspeed), 3.0, 4.9 * sin(time * camspeed));
 
