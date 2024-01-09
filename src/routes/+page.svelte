@@ -4,8 +4,9 @@
 
 	import raymarchingShader from '$lib/shaders/raymarch.frag.wgsl';
 	import vertexShader from '$lib/shaders/triangle.vert.wgsl';
+	import { createClock } from '$lib/clock';
 
-	let frameCount: number = 0
+	let clock = createClock()
 
 	let canvas!: HTMLCanvasElement;
 	let context: GPUCanvasContext | null;
@@ -45,7 +46,7 @@
 			]
 		});
 		
-		const uniformArray = new Float32Array([frameCount]);
+		const uniformArray = new Float32Array([0]);
 		const uniformBuffer = device.createBuffer({
 			size: uniformArray.byteLength,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -97,7 +98,7 @@
 				]
 			};
 
-			const uniformArray = new Float32Array([frameCount++]);
+			const uniformArray = new Float32Array([clock.timeElapsed() / 1000]);
 			device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
 
 			const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -110,6 +111,7 @@
 			requestAnimationFrame(frame);
 		}
 
+		clock.reset();
 		requestAnimationFrame(frame);
 	});
 </script>
