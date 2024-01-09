@@ -15,9 +15,6 @@
 		canvas.width = window.innerWidth
 		canvas.height = window.innerHeight
 
-		console.log(window.innerHeight)
-		console.log(window.innerWidth)
-
 		const adapter = await navigator.gpu.requestAdapter();
 		device = await adapter!.requestDevice();
 		context = canvas.getContext('webgpu');
@@ -47,7 +44,6 @@
 				}
 			]
 		});
-
 		
 		const uniformArray = new Float32Array([frameCount]);
 		const uniformBuffer = device.createBuffer({
@@ -57,7 +53,6 @@
 
 		device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
 
-		// Create a bind group to pass the grid uniforms into the pipeline
 		const bindGroup = device.createBindGroup({
 			layout: bindGroupLayout,
 			entries: [
