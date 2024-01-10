@@ -2,6 +2,8 @@ const resolution:  vec2<f32> = vec2(1920, 1080);
 
 // TimeElapsed, as second
 @group(0) @binding(0) var<uniform> time: f32;
+@group(0) @binding(1) var<uniform> viewplan: vec3<f32>;
+@group(0) @binding(2) var<uniform> eye: vec3<f32>;
 
 fn c01(p: f32) -> f32 {
     return clamp(p, 0.0, 1.0);
@@ -29,8 +31,9 @@ fn sdfPlane(p: vec3<f32>) -> f32 {
 }
 
 fn sdf(p: vec3<f32>) -> f32 {
-    var distance: f32 = sdfSphere(p, .8);
-    return distance;
+    var d1: f32 = sdfSphere(p, .8);
+    var d2 = sdfPlane(p - vec3(0, -1.5, 0));
+    return min(d1, d2);
 }
 
 fn calcNormal(pos: vec3<f32>) -> vec3<f32> {
@@ -73,6 +76,13 @@ fn directionalLight(
 
     return baseColor * 2.2 * diffuse * lightColor + 5.0 * spe * lightColor * 0.4;
 }
+
+fn checkers(p: vec3<f32>) -> f32
+{
+    let s = sign(fract(p*.5)-.5);
+    return .5 - .5*s.x*s.z*s.y;
+}
+
 
 fn raymarch(rayOrigin: vec3<f32>, rayDirection: vec3<f32>) -> f32 {
     var distance = 0.0;
@@ -173,25 +183,29 @@ fn render(rayOrigin: vec3<f32>, rayDirection: vec3<f32>) -> vec3<f32> {
         32.0
     );
 
-	return color;
+	return color * clamp(checkers(point), .25, 1.);
 }
 
 fn setCamera(ro: vec3<f32>, ta: vec3<f32>, cr: f32) -> mat3x3<f32> {
     let cw: vec3<f32> = normalize(ta - ro);
-    let cp: vec3<f32> = vec3(sin(cr), cos(cr), 0.0);
+    let cp: vec3<f32> = vec3(0.0, 1.0, 0.0);
     let cu: vec3<f32> = normalize(cross(cw, cp));
     let cv: vec3<f32> = cross(cu, cw);
+
     return mat3x3<f32>(cu, cv, cw);
+    
+    // return rotation;
+
+    // return mat3x3<f32>(cu, cv, cw);
 }
 
 @fragment
 fn main(@builtin(position) coordinates: vec4<f32>) -> @location(0) vec4<f32> {
 	// camera magic
     let camspeed: f32 = 1.25;
-    let ta: vec3<f32> = vec3(0.25, -0.75, -0.75);
-    let ro: vec3<f32> = ta + vec3(4.9 * cos(time * camspeed), 3.0, 4.9 * sin(time * camspeed));
-
-    let ca: mat3x3<f32> = setCamera(ro, ta, 0.0);
+    let ta: vec3<f32> = vec3(viewplan); // vec3(.25, -.75, -0.75);
+    let ro: vec3<f32> = ta + eye; // vec3(4.9 * cos(time * camspeed), 4.0, 4.9 * sin(time * camspeed));
+    let ca = setCamera(ro, ta, 0.0);
     let p = -(2.0 * coordinates.xy - resolution.xy) / resolution.y;
     let fl = 2.5;
     let rd = ca * normalize(vec3(p, fl));
