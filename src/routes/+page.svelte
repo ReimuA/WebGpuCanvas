@@ -5,16 +5,24 @@
 	import raymarchingShader from '$lib/shaders/raymarch.frag.wgsl';
 	import vertexShader from '$lib/shaders/triangle.vert.wgsl';
 	import { createClock } from '$lib/clock';
+	import { createUniformBuffer } from '$lib/binding';
+	import { Vector3ToArray } from '$lib/Vector3';
+	import { createCameraKeyboardListener } from '$lib/camera';
 
-	let clock = createClock()
+	let clock = createClock();
 
 	let canvas!: HTMLCanvasElement;
 	let context: GPUCanvasContext | null;
 	let device: GPUDevice;
 
+	let eye = { x: 4.9, y: 4, z: 4.9 };
+	let viewplan = { x: 0.25, y: -0.75, z: -0.75 };
+
+	let keyboardListener = createCameraKeyboardListener(eye, viewplan);
+
 	onMount(async () => {
-		canvas.width = window.innerWidth
-		canvas.height = window.innerHeight
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
 
 		const adapter = await navigator.gpu.requestAdapter();
 		device = await adapter!.requestDevice();
@@ -34,34 +42,26 @@
 		const vertexModule = device.createShaderModule({ code: vertexShader });
 		const fragmentModule = device.createShaderModule({ code: raymarchingShader });
 
-		const bindGroupLayout = device.createBindGroupLayout({
-			entries: [
-				{
-					binding: 0,
-					visibility: GPUShaderStage.FRAGMENT,
-					buffer: {
-						type: 'uniform'
-					}
-				}
-			]
-		});
-		
-		const uniformArray = new Float32Array([0]);
-		const uniformBuffer = device.createBuffer({
-			size: uniformArray.byteLength,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		});
+		var bindGroupLayoutEntries = [0, 1, 2].map<GPUBindGroupLayoutEntry>((binding) => ({
+			binding,
+			visibility: GPUShaderStage.FRAGMENT,
+			buffer: {
+				type: 'uniform'
+			}
+		}));
 
-		device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
+		const bindGroupLayout = device.createBindGroupLayout({ entries: bindGroupLayoutEntries });
+
+		const timeUniform = createUniformBuffer(device, new Float32Array([0]));
+		const eyeUniform = createUniformBuffer(device, Vector3ToArray(eye));
+		const viewPlanUniform = createUniformBuffer(device, Vector3ToArray(viewplan));
 
 		const bindGroup = device.createBindGroup({
 			layout: bindGroupLayout,
-			entries: [
-				{
-					binding: 0,
-					resource: { buffer: uniformBuffer }
-				}
-			]
+			entries: [timeUniform, viewPlanUniform, eyeUniform].map((buffer, i) => ({
+				binding: i,
+				resource: { buffer }
+			}))
 		});
 
 		const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
@@ -98,8 +98,9 @@
 				]
 			};
 
-			const uniformArray = new Float32Array([clock.timeElapsed() / 1000]);
-			device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
+			device.queue.writeBuffer(timeUniform, 0, new Float32Array([clock.timeElapsed() / 1000]));
+			device.queue.writeBuffer(eyeUniform, 0, Vector3ToArray(eye));
+			device.queue.writeBuffer(viewPlanUniform, 0, Vector3ToArray(viewplan));
 
 			const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 			passEncoder.setPipeline(pipeline);
@@ -117,3 +118,4 @@
 </script>
 
 <canvas bind:this={canvas} class="w-screen h-screen"></canvas>
+<svelte:window on:keydown={keyboardListener} />
