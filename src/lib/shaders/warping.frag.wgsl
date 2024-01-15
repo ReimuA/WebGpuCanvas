@@ -13,7 +13,7 @@ struct WarpData {
 } 
 
 fn rotate(p: vec2<f32>, angle: f32) -> vec2<f32> {
-    var rotation = mat2x2(cos(angle), -sin(angle), sin(angle), cos(angle)) ;
+    var rotation = mat2x2(cos(angle), -sin(angle), sin(angle), cos(angle));
 
     return p * rotation;
 }
@@ -32,6 +32,7 @@ fn hash1(point: vec2<f32>) -> f32 {
     return fract(p.x * p.y);
 }
 
+// noise(x) -> y where y > -1 and y < 1
 fn noise(x: vec2<f32>) -> f32 {
     var p = floor(x);
     var w = fract(x);
@@ -67,7 +68,6 @@ fn fbm(x: vec2<f32>, h: f32) -> f32 {
 fn warp(point: vec2<f32>) -> WarpData {
     var warpData: WarpData;
 
-
     var x = point;
 
     var s1 = vec2(
@@ -89,10 +89,13 @@ fn warp(point: vec2<f32>) -> WarpData {
 }
 
 fn render(p: vec2<f32>) -> vec3<f32> {
-    var res = warp(p / 4);
+    var res = warp(p);
 
+/*     var c1 = vec3(palette(length(res.s1) * 0.5)) * 0.9;
+    var c2 = vec3(palette(length(res.s2) * 0.75));
+    var c3 = vec3(palette((res.sf + 1) / 2)); */
  
-    return vec3(palette(res.sf));
+    return palette(mix(length(res.s1) / 2, length(res.s2), (res.sf + 1) / 2));
 }
 
 @fragment
