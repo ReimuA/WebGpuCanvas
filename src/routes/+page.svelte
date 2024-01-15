@@ -4,6 +4,7 @@
 
 	import raymarchingShader from '$lib/shaders/raymarch.frag.wgsl';
 	import vertexShader from '$lib/shaders/triangle.vert.wgsl';
+	import warpingShader from '$lib/shaders/warping.frag.wgsl';
 	import { createClock } from '$lib/clock';
 	import { createUniformBuffer } from '$lib/binding';
 	import { Vector3ToArray } from '$lib/Vector3';
@@ -15,8 +16,8 @@
 	let context: GPUCanvasContext | null;
 	let device: GPUDevice;
 
-	let eye = { x: 4.9, y: 4, z: 4.9 };
-	let viewplan = { x: 0.0, y: -0.75, z: -0.0 };
+	let eye = { x: 4.9, y: 2, z: -4.9 };
+	let viewplan = { x: 0.0, y: -0.75, z: 0.0 };
 
 	let keyboardListener = createCameraKeyboardListener(eye, viewplan);
 
@@ -40,7 +41,7 @@
 		});
 
 		const vertexModule = device.createShaderModule({ code: vertexShader });
-		const fragmentModule = device.createShaderModule({ code: raymarchingShader });
+		const fragmentModule = device.createShaderModule({ code: warpingShader });
 
 		var bindGroupLayoutEntries = [0, 1, 2].map<GPUBindGroupLayoutEntry>((binding) => ({
 			binding,
